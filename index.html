@@ -283,6 +283,26 @@
     font-style:italic;
   }
   .card-tags{margin-top:6px;font-size:.95rem;}
+  .card-links{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+  }
+  .card-link{
+    font-family:'Oswald',sans-serif;
+    font-size:.62rem;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    padding:5px 10px;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--ink-soft);
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-block;
+  }
+  .card-link:hover{border-color:var(--ink); color:var(--ink);}
 
   .fav-btn{
     flex:0 0 auto;
@@ -917,6 +937,7 @@ const CAT_TAGS = {ape:'🍹', pranzo:'🍽️', forno:'🍕', gelato:'🍦', pas
 let state = { cat:'all', zone:null, source:'all', q:'', onlyFavorites:false, favorites:{}, view:'list' };
 let leafletMap = null;
 let markersLayer = null;
+let markersById = {};
 
 const LS_PREFIX = 'posti-roma:';
 function lsGet(key, fallback){
@@ -1020,6 +1041,25 @@ btnMap.onclick=()=>{
   }, 30);
 };
 
+function directionsUrl(p){
+  return `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`;
+}
+
+function focusOnMap(p){
+  if(!p.lat || !p.lng) return;
+  state.view='map';
+  btnMap.classList.add('active'); btnList.classList.remove('active');
+  listWrap.classList.add('hidden'); mapWrap.classList.add('active');
+  setTimeout(()=>{
+    if(!leafletMap) initMap();
+    leafletMap.invalidateSize();
+    render();
+    leafletMap.setView([p.lat, p.lng], 16);
+    const m = markersById[p.id];
+    if(m) m.openPopup();
+  }, 30);
+}
+
 function initMap(){
   leafletMap = L.map('map', {zoomControl:true}).setView([41.9028, 12.4964], 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1068,16 +1108,24 @@ function render(){
           <div class="card-meta"><span class="pin-dot ${hasGeo?'':'nogeo'}"></span>${p.z}</div>
           ${p.note ? `<div class="card-note">${p.note}</div>` : ''}
           <div class="card-tags">${p.tag}</div>
+          ${hasGeo ? `
+          <div class="card-links">
+            <button class="card-link map-link">📍 Mappa</button>
+            <a class="card-link" href="${directionsUrl(p)}" target="_blank" rel="noopener">🧭 Indicazioni</a>
+          </div>` : ''}
         </div>
         <button class="fav-btn" title="Aggiungi ai preferiti" aria-label="Aggiungi ai preferiti">${fav?'★':'☆'}</button>
       `;
       card.querySelector('.fav-btn').onclick = ()=>toggleFavorite(p.id);
+      const mapLinkBtn = card.querySelector('.map-link');
+      if(mapLinkBtn) mapLinkBtn.onclick = ()=>focusOnMap(p);
       listEl.appendChild(card);
     });
   }
 
   if(leafletMap && markersLayer){
     markersLayer.clearLayers();
+    markersById = {};
     items.forEach(p=>{
       if(!p.lat || !p.lng) return;
       const fav = !!state.favorites[p.id];
@@ -1095,10 +1143,12 @@ function render(){
         <div class="popup-meta">${p.z}</div>
         ${p.note ? `<div class="popup-note">${p.note}</div>` : ''}
         <button class="popup-fav ${fav?'on':''}">${fav?'★ Nei preferiti':'☆ Aggiungi ai preferiti'}</button>
+        <a class="popup-fav" href="${directionsUrl(p)}" target="_blank" rel="noopener" style="display:inline-block;margin-left:6px;text-decoration:none;">🧭 Indicazioni</a>
       `;
       popupDiv.querySelector('.popup-fav').onclick = ()=>{ toggleFavorite(p.id); };
       marker.bindPopup(popupDiv);
       marker.addTo(markersLayer);
+      markersById[p.id] = marker;
     });
   }
 }
