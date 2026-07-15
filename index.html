@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Posti Roma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  :root{
+    --bg:#EFE4CD;
+    --paper:#FBF5E7;
+    --ink:#241C15;
+    --ink-soft:#5A4E3F;
+    --red:#A13F27;
+    --red-dark:#7A2C1B;
+    --gold:#B0862A;
+    --olive:#5B6B3C;
+    --line:#D9C9A3;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(161,63,39,0.05), transparent 40%),
+      radial-gradient(circle at 90% 30%, rgba(176,134,42,0.06), transparent 45%);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding-bottom:40px;
+  }
+
+  header{
+    padding:24px 18px 14px;
+    text-align:center;
+  }
+  header::after{
+    content:"";
+    display:block;
+    width:120px;
+    height:2px;
+    background:var(--gold);
+    margin:14px auto 0;
+    opacity:.6;
+  }
+  h1{
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    font-size:2.4rem;
+    letter-spacing:0.06em;
+    margin:0;
+    color:var(--ink);
+  }
+  h1 span{color:var(--red);font-style:italic;}
+  .subtitle{
+    font-family:'Oswald', sans-serif;
+    font-size:.66rem;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-top:6px;
+  }
+
+  .view-toggle{
+    display:flex;
+    justify-content:center;
+    gap:0;
+    margin:14px auto 0;
+    width:fit-content;
+    border:1.5px solid var(--ink);
+    border-radius:20px;
+    overflow:hidden;
+  }
+  .view-toggle button{
+    font-family:'Oswald',sans-serif;
+    font-size:.7rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:7px 20px;
+    border:none;
+    background:var(--paper);
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .view-toggle button.active{
+    background:var(--ink);
+    color:var(--paper);
+  }
+  .suggest-link{
+    display:block;
+    margin:10px auto 0;
+    background:none;
+    border:none;
+    font-family:'Oswald',sans-serif;
+    font-size:.68rem;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    text-decoration:underline;
+    text-underline-offset:3px;
+    cursor:pointer;
+  }
+  .suggest-link:hover{color:var(--red);}
+
+  .controls{
+    position:sticky;
+    top:0;
+    z-index:20;
+    background:var(--bg);
+    padding:10px 14px 12px;
+    border-bottom:1px solid var(--line);
+    box-shadow:0 6px 14px -10px rgba(0,0,0,.25);
+  }
+  .search-row{
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  #search{
+    flex:1;
+    font-family:'Inter',sans-serif;
+    font-size:.95rem;
+    padding:10px 14px;
+    border-radius:3px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+  }
+  #search:focus{border-color:var(--red);}
+  .fav-filter-btn{
+    font-family:'Oswald',sans-serif;
+    font-size:.66rem;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    white-space:nowrap;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:0 10px;
+    color:var(--ink-soft);
+    cursor:pointer;
+  }
+  .fav-filter-btn.active{
+    background:var(--gold);
+    color:var(--paper);
+    border-color:var(--gold);
+  }
+
+  .tabs{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:10px;
+    scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    font-family:'Oswald',sans-serif;
+    font-size:.7rem;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    white-space:nowrap;
+    padding:7px 14px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--ink-soft);
+    cursor:pointer;
+    flex:0 0 auto;
+  }
+  .tab.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+
+  .zones{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding:4px 2px 4px;
+    scrollbar-width:none;
+  }
+  .zones::-webkit-scrollbar{display:none;}
+  .targa{
+    position:relative;
+    flex:0 0 auto;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:.64rem;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    background:var(--paper);
+    color:var(--ink);
+    border:1.5px solid var(--ink);
+    border-radius:2px;
+    padding:6px 12px;
+    cursor:pointer;
+    box-shadow:1px 1px 0 rgba(36,28,21,.18);
+  }
+  .targa::before, .targa::after{
+    content:"";
+    position:absolute;
+    top:3px;
+    width:3px;
+    height:3px;
+    border-radius:50%;
+    background:var(--ink-soft);
+    opacity:.6;
+  }
+  .targa::before{left:4px;}
+  .targa::after{right:4px;}
+  .targa.active{
+    background:var(--red);
+    border-color:var(--red-dark);
+    color:var(--paper);
+  }
+  .targa.active::before, .targa.active::after{
+    background:rgba(255,255,255,.7);
+  }
+
+  .count{
+    font-family:'Oswald',sans-serif;
+    font-size:.64rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    padding:14px 18px 4px;
+  }
+  .list{
+    padding:6px 14px 20px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .card{
+    position:relative;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:13px 16px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+    overflow:hidden;
+    animation:fade .25s ease;
+  }
+  @keyframes fade{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+  .card-main{min-width:0;}
+  .card-name{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:600;
+    font-size:1.22rem;
+    line-height:1.2;
+  }
+  .card-meta{
+    font-family:'Oswald',sans-serif;
+    font-size:.63rem;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-top:3px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .pin-dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--olive);
+    flex:0 0 auto;
+  }
+  .pin-dot.nogeo{background:var(--line);}
+  .card-note{
+    font-family:'Inter',sans-serif;
+    font-size:.82rem;
+    color:var(--ink-soft);
+    margin-top:5px;
+    font-style:italic;
+  }
+  .card-tags{margin-top:6px;font-size:.95rem;}
+
+  .fav-btn{
+    flex:0 0 auto;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    border:1.5px solid var(--line);
+    background:transparent;
+    color:var(--line);
+    font-size:1.15rem;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+  }
+  .card.favorite{background:#FBF1DC; box-shadow:inset 3px 0 0 var(--gold);}
+  .card.favorite .fav-btn{
+    border-color:var(--gold);
+    background:var(--gold);
+    color:var(--paper);
+  }
+
+
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(36,28,21,.55);
+    z-index:50;
+    align-items:flex-end;
+    justify-content:center;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal{
+    background:var(--paper);
+    width:100%;
+    max-width:480px;
+    max-height:88vh;
+    overflow-y:auto;
+    border-radius:14px 14px 0 0;
+    padding:20px 20px 24px;
+    box-shadow:0 -6px 24px rgba(0,0,0,.3);
+  }
+  .modal h2{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:600;
+    font-size:1.5rem;
+    margin:0 0 14px;
+  }
+  .field{margin-bottom:12px;}
+  .field label{
+    display:block;
+    font-family:'Oswald',sans-serif;
+    font-size:.62rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  .field input, .field select, .field textarea{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    font-size:.9rem;
+    padding:9px 11px;
+    border-radius:4px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    box-sizing:border-box;
+  }
+  .field textarea{resize:vertical;min-height:50px;}
+  .cat-checks{display:flex;flex-wrap:wrap;gap:6px;}
+  .cat-chk{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-family:'Oswald',sans-serif;
+    font-size:.68rem;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    padding:6px 10px;
+    border-radius:16px;
+    border:1.3px solid var(--line);
+    background:#fff;
+    cursor:pointer;
+    user-select:none;
+  }
+  .cat-chk input{margin:0;accent-color:var(--red);}
+  .cat-chk.checked{border-color:var(--red); background:#fbe9e3;}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+  }
+  .modal-btn{
+    flex:1;
+    font-family:'Oswald',sans-serif;
+    font-size:.72rem;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:11px;
+    border-radius:20px;
+    border:1.5px solid var(--ink);
+    cursor:pointer;
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .modal-btn.primary{background:var(--ink);color:var(--paper);}
+  .modal-btn.danger{border-color:var(--red-dark);color:var(--red);}
+  .modal-hint{font-size:.72rem;color:var(--ink-soft);margin:-6px 0 12px;}
+
+  .empty{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+    font-family:'Cormorant Garamond',serif;
+    font-style:italic;
+    font-size:1.2rem;
+  }
+
+  #mapWrap{display:none;}
+  #mapWrap.active{display:block;}
+  #map{
+    height:calc(100vh - 230px);
+    min-height:400px;
+    width:100%;
+    border-top:1px solid var(--line);
+  }
+  .leaflet-popup-content-wrapper{
+    background:var(--paper);
+    border-radius:4px;
+    font-family:'Inter',sans-serif;
+  }
+  .popup-name{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.15rem;}
+  .popup-meta{font-family:'Oswald',sans-serif;font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);margin-top:2px;}
+  .popup-note{font-size:.8rem;font-style:italic;color:var(--ink-soft);margin-top:4px;}
+  .popup-fav{
+    margin-top:8px;
+    font-family:'Oswald',sans-serif;
+    font-size:.65rem;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    padding:5px 10px;
+    border-radius:14px;
+    border:1px solid var(--ink);
+    background:var(--paper);
+    cursor:pointer;
+  }
+  .popup-fav.on{background:var(--gold);color:var(--paper);border-color:var(--gold);}
+
+  .listWrap.hidden{display:none;}
+
+  footer{
+    text-align:center;
+    font-family:'Oswald',sans-serif;
+    font-size:.6rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    padding:20px;
+    opacity:.6;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Posti <span>Roma</span></h1>
+  <div class="subtitle">dove si mangia e si beve — la guida</div>
+  <div class="view-toggle">
+    <button id="btnList" class="active">Lista</button>
+    <button id="btnMap">Mappa</button>
+  </div>
+  <button class="suggest-link" id="btnSuggest">✉️ Proponi un posto</button>
+</header>
+
+<div class="controls">
+  <div class="search-row">
+    <input id="search" type="text" placeholder="Cerca un nome, una zona…">
+    <button class="fav-filter-btn" id="onlyFavBtn">⭐ Solo preferiti</button>
+  </div>
+  <div class="tabs" id="sources"></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="zones" id="zones"></div>
+</div>
+
+<div class="listWrap" id="listWrap">
+  <div class="count" id="count"></div>
+  <div class="list" id="list"></div>
+</div>
+
+<div id="mapWrap">
+  <div id="map"></div>
+</div>
+
+
+<div class="modal-overlay" id="suggestOverlay">
+  <div class="modal">
+    <h2>Proponi un posto</h2>
+    <div class="modal-hint">Compila il modulo: si aprirà la tua app email con un messaggio già pronto da inviare. Nessun dato viene salvato qui — decido io se aggiungerlo alla guida.</div>
+    <div class="field">
+      <label>Nome del posto</label>
+      <input type="text" id="sName" placeholder="Es. Trattoria da...">
+    </div>
+    <div class="field">
+      <label>Categorie (puoi selezionarne più di una)</label>
+      <div class="cat-checks" id="sCatBox"></div>
+    </div>
+    <div class="field">
+      <label>Zona</label>
+      <select id="sZone"></select>
+    </div>
+    <div class="field">
+      <label>Perché lo consigli / indirizzo</label>
+      <textarea id="sNote" placeholder="Cosa si mangia/beve, indirizzo, un aneddoto…"></textarea>
+    </div>
+    <div class="field">
+      <label>Il tuo nome (opzionale)</label>
+      <input type="text" id="sFrom" placeholder="Così sappiamo chi l'ha proposto">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="sCancel">Annulla</button>
+      <button class="modal-btn primary" id="sSend">Invia proposta</button>
+    </div>
+  </div>
+</div>
+
+<footer>SPQR · appunti personali, non un giudizio ufficiale</footer>
+
+<script>
+const CATS = [
+  {id:'all', label:'Tutti'},
+  {id:'ape', label:'🍹 Aperitivo / Bere'},
+  {id:'pranzo', label:'🍝 Pranzo / Cena'},
+  {id:'forno', label:'🍞 Forni / Pizza al taglio'},
+  {id:'gelato', label:'🍦 Gelato'},
+  {id:'pasticceria', label:'🥐 Pasticcerie'},
+  {id:'shop_food', label:'🧺 Botteghe alimentari'},
+  {id:'shop', label:'🛍️ Shopping'},
+  {id:'explore', label:'📍 Da scoprire'},
+  {id:'musica', label:'🎵 Musica dal vivo'},
+];
+
+const SOURCES = [
+  {id:'all', label:'Tutte le fonti'},
+  {id:'mio', label:'I nostri posti'},
+  {id:'rs', label:'Mappe esterne'},
+];
+
+const ZONES = [
+  'Trastevere','Prati','Ponte Milvio & Flaminio','Centro Storico','Parioli',
+  'Testaccio & Garbatella','Monti','Bologna & Pietralata','Ostiense',
+  'Mare (Ostia, Anzio, Terracina)','Monteverde','Altre zone'
+];
+
+let places = [
+  {n:'Vino e Focaccia', z:'Prati', cats:['ape'], note:'Via Cola di Rienzo', tag:'🍷', lat:41.9086633, lng:12.4669435},
+  {n:'Jarro', z:'Ponte Milvio & Flaminio', cats:['ape'], note:'Ponte Milvio', tag:'🍹', lat:41.937744, lng:12.4663069},
+  {n:'Tyler', z:'Ponte Milvio & Flaminio', cats:['ape','musica'], note:'Ponte Milvio — karaoke il lunedì', tag:'🍹🎤', lat:41.9387822, lng:12.469127},
+  {n:'Le Terrazze', z:'Centro Storico', cats:['ape'], note:'Piazza di Spagna — posizione da confermare', tag:'🍹', lat:null, lng:null},
+  {n:'Roscioli', z:'Centro Storico', cats:['ape'], note:'Campo dei Fiori — aperitivo', tag:'🍷🥖', lat:41.894256, lng:12.4742417},
+  {n:'Mu Mar Cafe', z:'Bologna & Pietralata', cats:['ape'], note:'Piazza Bologna', tag:'☕🍹', lat:41.9092222, lng:12.5205306},
+  {n:'33 Giri', z:'Prati', cats:['ape'], note:'Piazza Risorgimento', tag:'🍹', lat:41.9050235, lng:12.4595018},
+  {n:'TreeBar', z:'Ponte Milvio & Flaminio', cats:['ape'], note:'Flaminio', tag:'🍹', lat:41.9231495, lng:12.4715044},
+
+  {n:'Il Ciak', z:'Trastevere', cats:['pranzo'], note:'Trastevere', tag:'🍝', lat:41.8909953, lng:12.4694609},
+  {n:'Soralella', z:'Trastevere', cats:['pranzo'], note:'Trastevere', tag:'🍝', lat:41.890803, lng:12.478021},
+  {n:'Jinja', z:'Prati', cats:['pranzo'], note:'Prati e Parioli', tag:'🍣', lat:41.9127235, lng:12.4496613},
+  {n:'Roscioli', z:'Centro Storico', cats:['pranzo'], note:'Campo dei Fiori — "na mazzata" (conto importante)', tag:'🍝', lat:41.894256, lng:12.4742417},
+  {n:'Forno Roscioli', z:'Centro Storico', cats:['pranzo'], note:'Bono', tag:'🥖', lat:41.8945667, lng:12.4742778},
+  {n:'La Bettola', z:'Mare (Ostia, Anzio, Terracina)', cats:['pranzo'], note:'Ostia', tag:'🐟', lat:41.7346925, lng:12.3601402},
+  {n:'Da Fortunata', z:'Centro Storico', cats:['pranzo'], note:'Campo dei Fiori e Piazza Navona', tag:'🍝', lat:41.8961166, lng:12.4716707},
+  {n:'La Querida', z:'Mare (Ostia, Anzio, Terracina)', cats:['pranzo'], note:'Ostia', tag:'🐟', lat:41.7314975, lng:12.3359456},
+  {n:'Il Grottino', z:'Testaccio & Garbatella', cats:['pranzo'], note:'Testaccio', tag:'🍝', lat:41.8820197, lng:12.476612},
+  {n:'Birretta wine and food', z:'Prati', cats:['pranzo'], note:'Via de Saint Bon, Prati', tag:'🍺', lat:41.9124159, lng:12.4563726},
+  {n:'Enoteca del Frate', z:'Prati', cats:['pranzo'], note:'', tag:'🍷', lat:41.9089555, lng:12.4600601},
+  {n:'Carnal', z:'Prati', cats:['pranzo'], note:'Messicano, Prati', tag:'🌮', lat:41.9069218, lng:12.4585732},
+  {n:"All'oro", z:'Ponte Milvio & Flaminio', cats:['pranzo'], note:'', tag:'🍽️', lat:41.9139005, lng:12.4728606},
+  {n:'Ristorante Etico', z:'Ponte Milvio & Flaminio', cats:['pranzo'], note:'', tag:'🍽️', lat:41.9145639, lng:12.4727015},
+  {n:'Palmieri', z:'Parioli', cats:['pranzo'], note:'Parioli', tag:'🍝', lat:41.9226021, lng:12.4917613},
+  {n:'Zi Umberto', z:'Trastevere', cats:['pranzo'], note:'Trastevere', tag:'🍝', lat:41.8920839, lng:12.4689164},
+  {n:"Pimm's Good", z:'Trastevere', cats:['pranzo'], note:'', tag:'🍹', lat:41.89192, lng:12.46824},
+  {n:"Ma che c'è siete venuti a fa", z:'Trastevere', cats:['pranzo'], note:'Birreria, Trastevere', tag:'🍺', lat:41.8917811, lng:12.4692175},
+  {n:'Mamma Mia', z:'Monteverde', cats:['pranzo'], note:'Piazza Perin del Vaga', tag:'🍕', lat:41.924487, lng:12.4646157},
+  {n:'Garibaldi', z:'Altre zone', cats:['pranzo'], note:'Roma — posizione da confermare', tag:'🍽️', lat:42.0029133, lng:12.4995829},
+  {n:'Pizzeria dal Bersagliere', z:'Altre zone', cats:['pranzo'], note:'Posizione da confermare', tag:'🍕', lat:41.8757556, lng:12.5208781},
+  {n:'Pizzeria Ostiense', z:'Ostiense', cats:['pranzo'], note:'Ostiense', tag:'🍕', lat:41.8715432, lng:12.4797708},
+  {n:'La Gattabuia', z:'Trastevere', cats:['pranzo'], note:'', tag:'🍝', lat:41.8864192, lng:12.4770463},
+  {n:'Alfredo alla Scrofa', z:'Centro Storico', cats:['pranzo'], note:'Molto serio', tag:'🍝', lat:41.9022694, lng:12.4748277},
+  {n:'Pizzeria La Montecarlo', z:'Centro Storico', cats:['pranzo'], note:'', tag:'🍕', lat:41.897592, lng:12.4707729},
+  {n:'Osteria Tiuni', z:'Ponte Milvio & Flaminio', cats:['pranzo'], note:'', tag:'🍝', lat:41.9477269, lng:12.4761625},
+  {n:'Retrobottega', z:'Centro Storico', cats:['pranzo'], note:'', tag:'🍽️', lat:41.889053, lng:12.4825134},
+  {n:'Locanda Coronari', z:'Centro Storico', cats:['pranzo','musica'], note:'Cena e dopocena con musica', tag:'🍝🎶', lat:41.9009135, lng:12.4675291},
+  {n:'Enoteca Spiriti', z:'Centro Storico', cats:['pranzo'], note:"Meglio d'estate — cena dietro al Pantheon", tag:'🍷', lat:41.9001342, lng:12.4790153},
+  {n:'Ristoro degli Angeli', z:'Testaccio & Garbatella', cats:['pranzo'], note:'Romano, alla Garbatella', tag:'🍝', lat:41.8626743, lng:12.4848143},
+  {n:'Al Marchese', z:'Centro Storico', cats:['pranzo'], note:'Via di Ripetta', tag:'🍝', lat:41.9043904, lng:12.4752666},
+  {n:'Fraschetta Franchino', z:'Altre zone', cats:['pranzo'], note:'', tag:'🍝', lat:41.9119793, lng:12.5000734},
+  {n:'Etablino', z:'Monteverde', cats:['pranzo'], note:'', tag:'🍽️', lat:41.9251785, lng:12.4648079},
+  {n:'Vino Bono', z:'Prati', cats:['pranzo'], note:'Prati — Attilio', tag:'🍷', lat:41.9151833, lng:12.4553732},
+  {n:'Matricianella', z:'Centro Storico', cats:['pranzo'], note:'Attilio', tag:'🍝', lat:41.9037351, lng:12.477405},
+  {n:'Pizzeria ai Marmi', z:'Trastevere', cats:['pranzo'], note:'Trastevere', tag:'🍕', lat:41.888251, lng:12.4737127},
+  {n:'Antica Pesa', z:'Trastevere', cats:['pranzo'], note:'Trastevere', tag:'🍝', lat:41.8905605, lng:12.4664612},
+  {n:'La Villetta dal…', z:'Altre zone', cats:['pranzo'], note:'Nome incompleto negli appunti originali', tag:'🍝', lat:null, lng:null},
+  {n:'Rinaldi al Quirinale', z:'Centro Storico', cats:['pranzo'], note:'Quirinale', tag:'🍝', lat:41.8988338, lng:12.4889933},
+  {n:'Romanzo', z:'Prati', cats:['pranzo'], note:'Macelleria pugliese, Prati', tag:'🥩', lat:41.9092401, lng:12.4632617},
+  {n:'Da Romolo al Porto', z:'Mare (Ostia, Anzio, Terracina)', cats:['pranzo'], note:'Pesce, Anzio', tag:'🐟', lat:41.4453287, lng:12.6303864},
+  {n:'Campo dei Fiori', z:'Mare (Ostia, Anzio, Terracina)', cats:['pranzo'], note:'Carne, a Terracina (da non confondere con la piazza)', tag:'🥩', lat:41.2923939, lng:13.2473723},
+  {n:'Da Meo Patacca', z:'Trastevere', cats:['pranzo'], note:'Trastevere, romano', tag:'🍝', lat:41.886719, lng:12.476915},
+  {n:'Da Enzo', z:'Trastevere', cats:['pranzo'], note:'Trastevere, romano', tag:'🍝', lat:41.8880847, lng:12.4778554},
+  {n:'Ivo', z:'Trastevere', cats:['pranzo'], note:'Trastevere, romano', tag:'🍕', lat:41.8881329, lng:12.4710707},
+  {n:'Checco er Carettiere', z:'Trastevere', cats:['pranzo'], note:'Trastevere, romano', tag:'🍝', lat:41.8915888, lng:12.4693957},
+  {n:'Coffee Pot', z:'Trastevere', cats:['pranzo'], note:'Trastevere, dopo cena', tag:'☕', lat:41.8909461, lng:12.4711819},
+  {n:'Balagan', z:'Altre zone', cats:['pranzo'], note:'Simil masseria', tag:'🍽️', lat:41.9507896, lng:12.5540737},
+  {n:'Dukes', z:'Parioli', cats:['pranzo'], note:'Parioli — da ape al dopocena', tag:'🍹', lat:41.9296119, lng:12.4858557},
+  {n:'Fuoco', z:'Prati', cats:['pranzo'], note:'Prati', tag:'🍝', lat:41.9064442, lng:12.4687468},
+  {n:'Ex Galleria', z:'Monti', cats:['pranzo'], note:'Bere a Monti', tag:'🍹', lat:41.8945131, lng:12.4888528},
+  {n:'La Sorchetta', z:'Altre zone', cats:['pranzo'], note:'Doppio schizzo', tag:'🍝', lat:41.9070268, lng:12.5011393},
+
+  {n:'Straforno', z:'Altre zone', cats:['forno'], note:'Daniele e Massimo', tag:'🍕', lat:41.9451204, lng:12.5682438},
+  {n:'Gallo Rosso', z:'Bologna & Pietralata', cats:['forno'], note:'Pietralata — Daniele e Massimo', tag:'🍕', lat:41.9264551, lng:12.5288264},
+
+  {n:'Gelarmoni', z:'Altre zone', cats:['gelato'], note:'Ignazio', tag:'🍦', lat:41.9095208, lng:12.4671211},
+];
+places = places.map(p=>({...p, source:'mio'}));
+
+let rsPlaces = [
+  {n:'Retrobottega', z:'Altre zone', cats:['ape'], note:'Bere bene — Via del Velabro 9, Roma', tag:'🍹', lat:41.8893572, lng:12.4829578, rs:true},
+  {n:'Spazio Sette', z:'Altre zone', cats:['shop'], note:'Shop — Via dei Barbieri, 7, 00186 Roma RM', tag:'🛍️', lat:41.8950885, lng:12.4757012, rs:true},
+  {n:'Altroquando', z:'Altre zone', cats:['shop'], note:'Shop — Via del Governo Vecchio, 82, 00186 Roma RM', tag:'🛍️', lat:41.8978797, lng:12.4718146, rs:true},
+  {n:'Ara Pacis', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Lungotevere in Augusta,  Roma', tag:'📍', lat:41.9087346, lng:12.473888, rs:true},
+  {n:'Trapizzino', z:'Altre zone', cats:['pranzo'], note:'Street food e mercati — Piazza Trilussa 46, Roma', tag:'🍽️', lat:41.8914619, lng:12.4699126, rs:true},
+  {n:'Mercato Trionfale', z:'Altre zone', cats:['pranzo'], note:'Street food e mercati — Via Andrea Doria 41, Roma', tag:'🍽️', lat:41.9093235, lng:12.4527349, rs:true},
+  {n:'Mercato Centrale', z:'Altre zone', cats:['pranzo'], note:'Street food e mercati — Via Giovanni Giolitti 36, Roma', tag:'🍽️', lat:41.8987374, lng:12.503558, rs:true},
+  {n:'I Supplì dei Coronari', z:'Altre zone', cats:['pranzo'], note:'Street food e mercati — Via dei Coronari 25, Roma', tag:'🍽️', lat:41.9004481, lng:12.4710725, rs:true},
+  {n:'Antico Forno Roscioli', z:'Altre zone', cats:['pranzo'], note:'Street food e mercati — Via dei Chiavari 34, Roma', tag:'🍽️', lat:41.8946474, lng:12.4742641, rs:true},
+  {n:'Supplizio', z:'Altre zone', cats:['pranzo'], note:'Street food e mercati — Via dei Banchi Vecchi 143, Roma', tag:'🍽️', lat:41.8974708, lng:12.467903, rs:true},
+  {n:'Dar Filettaro a Santa Barbara', z:'Altre zone', cats:['pranzo'], note:'Street food e mercati — Largo dei Librari 88, Roma', tag:'🍽️', lat:41.894683, lng:12.473683, rs:true},
+  {n:'Becco', z:'Altre zone', cats:['pranzo'], note:'Street food e mercati — Piazzale degli Eroi 7, Roma', tag:'🍽️', lat:41.9095819, lng:12.4487765, rs:true},
+  {n:'Bar della cometa', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Via del Teatro di Marcello 4, Roma', tag:'🍹', lat:41.8912054, lng:12.4805351, rs:true},
+  {n:'Trimani', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Cernaia 37b, Roma', tag:'🍹', lat:41.9064965, lng:12.5003431, rs:true},
+  {n:'Frisson', z:'Altre zone', cats:['ape','musica'], note:'Bere bene — Via Alberto da Giussano 37, Roma', tag:'🍹', lat:41.8914868, lng:12.5344843, rs:true},
+  {n:'Alimenti', z:'Altre zone', cats:['ape'], note:'Bere bene — Vicolo del Gallo 18, Roma', tag:'🍹', lat:41.8956482, lng:12.4714648, rs:true},
+  {n:'Faro', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via Piave 55, Roma', tag:'🥐', lat:41.9102507, lng:12.4983822, rs:true},
+  {n:'Pasticceria Valzani', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via del Moro 37, Roma', tag:'🥐', lat:41.8900516, lng:12.470956, rs:true},
+  {n:'Ostiense', z:'Ostiense', cats:['explore'], note:'Strade e Quartieri — Ostiense, Roma', tag:'📍', lat:41.8572827, lng:12.4778813, rs:true},
+  {n:'Casa del Jazz', z:'Altre zone', cats:['explore','musica'], note:'Arte e Cultura — Viale di Porta Ardeatina 55, Roma', tag:'📍', lat:41.8733879, lng:12.4937668, rs:true},
+  {n:'Largo di Torre Argentina', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Largo di Torre Argentina, Roma', tag:'📍', lat:41.8959948, lng:12.4768388, rs:true},
+  {n:'Piramide Cestia', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Via Raffaele Persichetti, Roma', tag:'📍', lat:41.8764486, lng:12.480854, rs:true},
+  {n:'Pantheon', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazza della Rotonda, Roma', tag:'📍', lat:41.898616, lng:12.4768334, rs:true},
+  {n:'Flaminio', z:'Ponte Milvio & Flaminio', cats:['explore'], note:'Strade e Quartieri — Flaminio, Roma', tag:'📍', lat:41.9128476, lng:12.4771598, rs:true},
+  {n:'Palladium', z:'Testaccio & Garbatella', cats:['explore'], note:'Arte e Cultura — Piazza Bartolomeo Romano 8, Garbatella, Roma', tag:'📍', lat:41.859, lng:12.5125, rs:true},
+  {n:'Via Margutta', z:'Altre zone', cats:['explore'], note:'Strade e Quartieri — Via Margutta, Roma', tag:'📍', lat:41.9086166, lng:12.4795284, rs:true},
+  {n:'Musei Vaticani', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Viale Vaticano, Città del Vaticano', tag:'📍', lat:41.9065, lng:12.4536, rs:true},
+  {n:'Colosseo', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazza del Colosseo, Roma', tag:'📍', lat:41.8902437, lng:12.4923373, rs:true},
+  {n:'Villa Chigi', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Via di Villa Chigi, 00199 Roma RM', tag:'📍', lat:41.931595, lng:12.5131061, rs:true},
+  {n:'Via Giulia', z:'Altre zone', cats:['explore'], note:'Strade e Quartieri — Via Giulia, Roma', tag:'📍', lat:41.8969243, lng:12.4675148, rs:true},
+  {n:'Palazzo delle Esposizioni', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Nazionale 194, Roma', tag:'📍', lat:41.9006432, lng:12.4914726, rs:true},
+  {n:'Varsi Art & Lab', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via di San Salvatore in Campo 51, Roma', tag:'📍', lat:41.8966, lng:12.4677, rs:true},
+  {n:'Palazzo Barberini', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via delle Quattro Fontane 13, Roma', tag:'📍', lat:41.9038556, lng:12.4900192, rs:true},
+  {n:'MACRO', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Nizza 138, Roma', tag:'📍', lat:41.9168094, lng:12.5022395, rs:true},
+  {n:'Ponte Sisto', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Ponte Sisto, Roma', tag:'📍', lat:41.8923415, lng:12.4707478, rs:true},
+  {n:'Parco dell\'EUR', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Viale Africa, Roma', tag:'📍', lat:41.8254177, lng:12.4723127, rs:true},
+  {n:'Piazza Farnese', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazza Farnese, Roma', tag:'📍', lat:41.8950608, lng:12.4712585, rs:true},
+  {n:'San Pietro in Vincoli', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza di San Pietro in Vincoli 4/A, Roma', tag:'📍', lat:41.8939, lng:12.4937, rs:true},
+  {n:'Domus Aurea', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Viale Serapide, Roma', tag:'📍', lat:41.8909129, lng:12.4965425, rs:true},
+  {n:'Basilica di San Pietro', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazza San Pietro, Città del Vaticano', tag:'📍', lat:41.9022, lng:12.4539, rs:true},
+  {n:'Pigneto', z:'Altre zone', cats:['explore'], note:'Strade e Quartieri — Pigneto, Roma', tag:'📍', lat:41.8884777, lng:12.5281813, rs:true},
+  {n:'San Giovanni in Laterano', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza di San Giovanni in Laterano, Roma', tag:'📍', lat:41.8858494, lng:12.5055874, rs:true},
+  {n:'Piazza del Popolo', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazza del Popolo, Roma', tag:'📍', lat:41.9107477, lng:12.4763594, rs:true},
+  {n:'Fondazione d\'ARC', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Galvani 18, Roma', tag:'📍', lat:41.8568, lng:12.481, rs:true},
+  {n:'Santa Maria in Trastevere', z:'Trastevere', cats:['explore'], note:'Arte e Cultura — Piazza di Santa Maria in Trastevere, Roma', tag:'📍', lat:41.8894229, lng:12.469501, rs:true},
+  {n:'Santa Maria sopra Minerva', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza della Minerva, Roma', tag:'📍', lat:41.8979835, lng:12.4783622, rs:true},
+  {n:'Basement Roma', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Niccolò Tartaglia 2, Roma', tag:'📍', lat:41.893, lng:12.476, rs:true},
+  {n:'Città dell\'Altra Economia', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Largo Dino Frisullo, Roma', tag:'📍', lat:41.8758243, lng:12.4756291, rs:true},
+  {n:'Casetta Rossa', z:'Testaccio & Garbatella', cats:['explore'], note:'Arte e Cultura — Via Magnaghi, Garbatella, Roma', tag:'📍', lat:41.8634123, lng:12.4838567, rs:true},
+  {n:'Centro della Fotografia', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza Orazio Giustiniani, 4, 00153 Roma RM', tag:'📍', lat:41.8756947, lng:12.4725073, rs:true},
+  {n:'Parioli', z:'Parioli', cats:['explore'], note:'Strade e Quartieri — Parioli, Roma', tag:'📍', lat:41.9310501, lng:12.4885897, rs:true},
+  {n:'Santa Cecilia in Trastevere', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Anicia, Roma', tag:'📍', lat:41.8875623, lng:12.4758569, rs:true},
+  {n:'Piazza del Campidoglio', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazza del Campidoglio, Roma', tag:'📍', lat:41.8932482, lng:12.4829853, rs:true},
+  {n:'Sant\'Ivo alla Sapienza', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza di Sant\'Eustachio, Roma', tag:'📍', lat:41.8981902, lng:12.4748844, rs:true},
+  {n:'Circo Massimo', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Via del Circo Massimo, Roma', tag:'📍', lat:41.8861585, lng:12.4853087, rs:true},
+  {n:'Portico d\'Ottavia', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Largo 16 Ottobre 1943, Roma', tag:'📍', lat:41.8925126, lng:12.4785372, rs:true},
+  {n:'Sant\'Ignazio di Loyola', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza di Sant\'Ignazio, Roma', tag:'📍', lat:41.8987497, lng:12.4798081, rs:true},
+  {n:'Villa Borghese', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Villa Borghese, Roma', tag:'📍', lat:41.9138782, lng:12.4853818, rs:true},
+  {n:'Santa Maria Maggiore', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza di Santa Maria Maggiore, Roma', tag:'📍', lat:41.8976275, lng:12.4984704, rs:true},
+  {n:'San Carlo alle Quattro Fontane', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via del Quirinale, Roma', tag:'📍', lat:41.901738, lng:12.4907977, rs:true},
+  {n:'San Lorenzo', z:'Altre zone', cats:['explore'], note:'Strade e Quartieri — San Lorenzo, Roma', tag:'📍', lat:41.8975008, lng:12.5155417, rs:true},
+  {n:'Galleria Spada', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza Capo di Ferro 13, Roma', tag:'📍', lat:41.8946432, lng:12.4710147, rs:true},
+  {n:'Bocca della Verità', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazza della Bocca della Verità, Roma', tag:'📍', lat:41.8882567, lng:12.4815441, rs:true},
+  {n:'Teatro India', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Lungotevere Vittorio Gassman, Roma', tag:'📍', lat:41.8686672, lng:12.4718528, rs:true},
+  {n:'Testaccio', z:'Testaccio & Garbatella', cats:['explore'], note:'Strade e Quartieri — Testaccio, Roma', tag:'📍', lat:41.878818, lng:12.4767691, rs:true},
+  {n:'Trastevere', z:'Trastevere', cats:['explore'], note:'Strade e Quartieri — Trastevere, Roma', tag:'📍', lat:41.8911586, lng:12.4668459, rs:true},
+  {n:'Cripta dei Cappuccini', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Vittorio Veneto 27, Roma', tag:'📍', lat:41.9047906, lng:12.4885852, rs:true},
+  {n:'Gagosian Roma', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Francesco Crispi 16, Roma', tag:'📍', lat:41.9054268, lng:12.4879342, rs:true},
+  {n:'Piazza di Spagna', z:'Centro Storico', cats:['explore'], note:'Roma Iconica — Piazza di Spagna, Roma', tag:'📍', lat:41.9056345, lng:12.4823487, rs:true},
+  {n:'Fontana di Trevi', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazza di Trevi, Roma', tag:'📍', lat:41.9009778, lng:12.4832848, rs:true},
+  {n:'Villa Torlonia', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Via di Villa Torlonia, Roma', tag:'📍', lat:41.9141113, lng:12.5144713, rs:true},
+  {n:'Monti', z:'Monti', cats:['explore'], note:'Strade e Quartieri — Monti, Roma', tag:'📍', lat:41.8919732, lng:12.4956579, rs:true},
+  {n:'Centocelle', z:'Altre zone', cats:['explore'], note:'Strade e Quartieri — Centocelle, Roma', tag:'📍', lat:41.8747757, lng:12.5625658, rs:true},
+  {n:'Chiesa del Gesù', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza del Gesù, Roma', tag:'📍', lat:41.8958842, lng:12.4798212, rs:true},
+  {n:'Cinema Troisi', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Girolamo Induno 1, Roma', tag:'📍', lat:41.8849464, lng:12.4716375, rs:true},
+  {n:'Terme di Caracalla', z:'Altre zone', cats:['explore','musica'], note:'Roma Iconica — Viale Guido Baccelli, Roma', tag:'📍', lat:41.8788285, lng:12.4924737, rs:true},
+  {n:'Basilica di San Clemente', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Labicana 95, Roma', tag:'📍', lat:41.8893139, lng:12.4974657, rs:true},
+  {n:'Prati', z:'Prati', cats:['explore'], note:'Strade e Quartieri — Prati, Roma', tag:'📍', lat:41.9081381, lng:12.4644964, rs:true},
+  {n:'Villa Ada', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Via Salaria 237, Roma', tag:'📍', lat:41.9808646, lng:12.5079611, rs:true},
+  {n:'Palazzo della Civiltà Italiana', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Quadrato della Concordia, EUR, Roma', tag:'📍', lat:41.8367053, lng:12.4651239, rs:true},
+  {n:'Vittoriano', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazza Venezia, Roma', tag:'📍', lat:41.8946867, lng:12.4830664, rs:true},
+  {n:'Piazza Navona', z:'Centro Storico', cats:['explore'], note:'Roma Iconica — Piazza Navona, Roma', tag:'📍', lat:41.8989282, lng:12.4731178, rs:true},
+  {n:'Fori Imperiali', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Via dei Fori Imperiali, Roma', tag:'📍', lat:41.8915659, lng:12.4902082, rs:true},
+  {n:'Stadio di Domiziano', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Via di Tor Sanguigna 3, Roma', tag:'📍', lat:41.8989282, lng:12.4731178, rs:true},
+  {n:'Teatro Marcello', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Via del Teatro di Marcello, Roma', tag:'📍', lat:41.8929565, lng:12.4811097, rs:true},
+  {n:'Cimitero Acattolico', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Caio Cestio 6, Roma', tag:'📍', lat:41.8762818, lng:12.478973, rs:true},
+  {n:'Il sorpasso', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Properzio 31, Roma', tag:'🍹', lat:41.9055315, lng:12.4613055, rs:true},
+  {n:'Edicola Erno', z:'Altre zone', cats:['shop'], note:'Shop — Roma', tag:'🛍️', lat:41.8933203, lng:12.4829321, rs:true},
+  {n:'Stay.', z:'Altre zone', cats:['shop'], note:'Shop — Via dei Falegnami 64, Roma', tag:'🛍️', lat:41.8940204, lng:12.476208, rs:true},
+  {n:'Piccioni Fabio', z:'Altre zone', cats:['shop'], note:'Shop — Via del Boschetto 148, Roma', tag:'🛍️', lat:41.8975008, lng:12.4903598, rs:true},
+  {n:'Casale dei Cedrati', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Via Aurelia Antica 219, Roma', tag:'🍹', lat:41.89139, lng:12.4301989, rs:true},
+  {n:'Archegonia', z:'Testaccio & Garbatella', cats:['shop'], note:'Shop — Piazza Testaccio 24, Roma', tag:'🛍️', lat:41.879556, lng:12.4770463, rs:true},
+  {n:'Adelaide', z:'Testaccio & Garbatella', cats:['shop'], note:'Shop — Mercato Testaccio, Roma', tag:'🛍️', lat:41.8777494, lng:12.4736702, rs:true},
+  {n:'Triplef', z:'Altre zone', cats:['shop'], note:'Shop — Via delle Mantellate 15, Roma', tag:'🛍️', lat:41.8956169, lng:12.4638468, rs:true},
+  {n:'Lela', z:'Altre zone', cats:['shop'], note:'Shop — Via dei Pettinari 37, Roma', tag:'🛍️', lat:41.8934041, lng:12.4722022, rs:true},
+  {n:'Assemblea Testaccio', z:'Altre zone', cats:['shop'], note:'Shop — Via Alessandro Volta 22, Roma', tag:'🛍️', lat:41.8785621, lng:12.4771555, rs:true},
+  {n:'Antica Manifattura Cappelli', z:'Altre zone', cats:['shop'], note:'Shop — Via degli Scipioni, 46, 00192 Roma RM', tag:'🛍️', lat:41.9092979, lng:12.4611131, rs:true},
+  {n:'Chez Dede', z:'Altre zone', cats:['shop'], note:'Shop — Via di Monserrato 35, Roma', tag:'🛍️', lat:41.8961662, lng:12.4692835, rs:true},
+  {n:'Grand Tour Collection', z:'Altre zone', cats:['shop'], note:'Shop — Via dei Coronari 32, Roma', tag:'🛍️', lat:41.9004616, lng:12.4707028, rs:true},
+  {n:'Cereria di Giorgio', z:'Trastevere', cats:['shop'], note:'Shop — Viale di Trastevere 165/171, Roma', tag:'🛍️', lat:41.883943, lng:12.4698474, rs:true},
+  {n:'Dylan Tripp', z:'Altre zone', cats:['shop'], note:'Shop — Via di Monserrato 110, Roma', tag:'🛍️', lat:41.8958152, lng:12.4694519, rs:true},
+  {n:'Le tre sarte', z:'Altre zone', cats:['shop'], note:'Shop — Piazza de\' Ricci, Roma', tag:'🛍️', lat:41.8966241, lng:12.4685787, rs:true},
+  {n:'Spazio Giallo', z:'Altre zone', cats:['shop'], note:'Shop — Piazza dé Ricci 126, Roma', tag:'🛍️', lat:41.8966241, lng:12.4685787, rs:true},
+  {n:'Fabindia', z:'Altre zone', cats:['shop'], note:'Shop — Via del Banco di Santo Spirito 40, Roma', tag:'🛍️', lat:41.900608, lng:12.4665656, rs:true},
+  {n:'Hollywood tutto sul Cinema', z:'Altre zone', cats:['shop'], note:'Shop — Via di Monserrato 107, Roma', tag:'🛍️', lat:41.8959254, lng:12.4695293, rs:true},
+  {n:'Essenzialmente Laura', z:'Altre zone', cats:['shop'], note:'Shop — Via di Campo Marzio 35, Roma', tag:'🛍️', lat:41.9030054, lng:12.477696, rs:true},
+  {n:'L.A.R. Paralumi dal 1938', z:'Altre zone', cats:['shop'], note:'Shop — Via del Leoncino 29, Roma', tag:'🛍️', lat:41.9041975, lng:12.4780779, rs:true},
+  {n:'Schostal', z:'Altre zone', cats:['shop'], note:'Boutique moda — Via della Fontanella di Borghese 29, Roma', tag:'🛍️', lat:41.9039337, lng:12.4772671, rs:true},
+  {n:'Emporio Centrale', z:'Altre zone', cats:['shop'], note:'Shop — Largo del Teatro Valle 1, Roma', tag:'🛍️', lat:41.8969982, lng:12.4746271, rs:true},
+  {n:'Mercato Testaccio', z:'Altre zone', cats:['pranzo'], note:'Street food e mercati — Via Aldo Manuzio 66, Roma', tag:'🍽️', lat:41.877705, lng:12.4740166, rs:true},
+  {n:'Cristalli di Zucchero', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via di Val Tellina 114, Roma', tag:'🥐', lat:41.8693631, lng:12.446614, rs:true},
+  {n:'Sabotino', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via Sabotino 19/29, Roma', tag:'🥐', lat:41.9163805, lng:12.4614856, rs:true},
+  {n:'Linari', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via Nicola Zabaglia 9, Roma', tag:'🥐', lat:41.8794409, lng:12.4747319, rs:true},
+  {n:'Andreotti', z:'Ostiense', cats:['pasticceria'], note:'Pasticcerie — Via Ostiense, 54 b, 00154 Roma', tag:'🥐', lat:41.8716985, lng:12.4797813, rs:true},
+  {n:'Slow', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Corso Vittorio Emanuele II 73, Roma', tag:'🥐', lat:41.9000189, lng:12.4658981, rs:true},
+  {n:'Pirò', z:'Altre zone', cats:['pranzo'], note:'Pesce — Vicolo della Cancelleria 36, Roma', tag:'🍽️', lat:41.8977607, lng:12.4713371, rs:true},
+  {n:'Gallo', z:'Altre zone', cats:['pranzo'], note:'Pesce — Via Santa Croce in Gerusalemme 29, Roma', tag:'🍽️', lat:41.8907389, lng:12.5112284, rs:true},
+  {n:'Il tempio di Iside', z:'Altre zone', cats:['pranzo'], note:'Pesce — Via Pietro Verri 1,  Roma', tag:'🍽️', lat:41.8896028, lng:12.5010184, rs:true},
+  {n:'Ivo a Trastevere', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — Via di S. Francesco a Ripa 158, Roma', tag:'🍽️', lat:41.8881254, lng:12.4710895, rs:true},
+  {n:'Osteria degli Amici', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Galvani 18, Roma', tag:'🍽️', lat:41.8773942, lng:12.4761724, rs:true},
+  {n:'Felice a Testaccio', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Mastro Giorgio 29, Roma', tag:'🍽️', lat:41.8785014, lng:12.4774658, rs:true},
+  {n:'Flavio al Velavevodetto', z:'Testaccio & Garbatella', cats:['pranzo'], note:'Mangiare romano — Via di Monte Testaccio 97,  Roma', tag:'🍽️', lat:41.8766328, lng:12.4760851, rs:true},
+  {n:'Osteria dell\'Angelo', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Giovanni Bettolo 24-32, Roma', tag:'🍽️', lat:41.9117268, lng:12.4563401, rs:true},
+  {n:'Betto e Mary', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via dei Savorgnan 99, Roma', tag:'🍽️', lat:41.87912, lng:12.5369644, rs:true},
+  {n:'Osteria della trippa', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Goffredo Mameli 15/16, Roma', tag:'🍽️', lat:41.8870727, lng:12.4679072, rs:true},
+  {n:'Augustarello', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Giovanni Branca 98, Roma', tag:'🍽️', lat:41.8795671, lng:12.4736006, rs:true},
+  {n:'Osteria di Monteverde', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Pietro Cartoni 163/165,  Roma', tag:'🍽️', lat:41.8729844, lng:12.4553829, rs:true},
+  {n:'Santo Palato', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Gallia 28, Roma', tag:'🍽️', lat:41.8814323, lng:12.5014324, rs:true},
+  {n:'Gazometro', z:'Ostiense', cats:['explore'], note:'Roma Iconica — Via del Commercio / Ostiense, Roma', tag:'📍', lat:41.8689, lng:12.4769, rs:true},
+  {n:'Galleria Borghese', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazzale Scipione Borghese 5, Roma', tag:'📍', lat:41.9142, lng:12.4922, rs:true},
+  {n:'Parco degli Acquedotti', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Via Lemonia, Roma', tag:'📍', lat:41.8517, lng:12.561, rs:true},
+  {n:'Campo de\' Fiori', z:'Centro Storico', cats:['explore'], note:'Roma Iconica — Piazza Campo de\' Fiori, Roma', tag:'📍', lat:41.8956, lng:12.4722, rs:true},
+  {n:'San Luigi dei Francesi', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza di San Luigi de\' Francesi, Roma', tag:'📍', lat:41.8993, lng:12.4744, rs:true},
+  {n:'Mattatoio', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza Orazio Giustiniani 4, Roma', tag:'📍', lat:41.8769, lng:12.4737, rs:true},
+  {n:'Giardino degli Aranci', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Piazza Pietro D\'Illiria, Roma', tag:'📍', lat:41.8842239, lng:12.4801571, rs:true},
+  {n:'Quartiere Coppedè', z:'Altre zone', cats:['explore'], note:'Strade e Quartieri — Piazza Mincio / Via Dora, Roma', tag:'📍', lat:41.9215, lng:12.4983, rs:true},
+  {n:'Isola Tiberina', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Lungotevere de\' Cenci, Roma', tag:'📍', lat:41.8902, lng:12.4779, rs:true},
+  {n:'Ghetto Ebraico', z:'Altre zone', cats:['explore'], note:'Strade e Quartieri — Via del Portico d\'Ottavia, Roma', tag:'📍', lat:41.8919, lng:12.4781, rs:true},
+  {n:'Villa Celimontana', z:'Altre zone', cats:['explore','musica'], note:'Verde Urbano — Salita di S. Gregorio, Roma', tag:'📍', lat:41.8853013, lng:12.4898173, rs:true},
+  {n:'Parco dell\'Appia Antica', z:'Altre zone', cats:['explore'], note:'Verde urbano — Via Appia Antica, Roma', tag:'📍', lat:41.8559, lng:12.5137, rs:true},
+  {n:'Villa Sciarra', z:'Altre zone', cats:['explore'], note:'Verde Urbano — V.le delle Mura Gianicolensi 11, Roma', tag:'📍', lat:41.8840717, lng:12.4620553, rs:true},
+  {n:'Catacombe di San Callisto', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Via Appia Antica 110, Roma', tag:'📍', lat:41.858, lng:12.5126, rs:true},
+  {n:'Garbatella', z:'Altre zone', cats:['explore'], note:'Strade e Quartieri — Piazza Benedetto Brin, Roma', tag:'📍', lat:41.8643, lng:12.4855, rs:true},
+  {n:'Nuovo Sacher', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Largo Ascianghi 1, Roma', tag:'📍', lat:41.8862, lng:12.471, rs:true},
+  {n:'Galleria Doria Pamphilj', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via del Corso 305, Roma', tag:'📍', lat:41.8987, lng:12.481, rs:true},
+  {n:'Appia Antica', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Via Appia Antica 42, Roma', tag:'📍', lat:41.8567297, lng:12.5294367, rs:true},
+  {n:'Santa Maria della Vittoria', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via XX Settembre 17, Roma', tag:'📍', lat:41.9047, lng:12.4945, rs:true},
+  {n:'Fondazione Pastificio Cerere', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via degli Ausoni 7, Roma', tag:'📍', lat:41.8945, lng:12.5158, rs:true},
+  {n:'Auditorium Parco della Musica', z:'Altre zone', cats:['explore','musica'], note:'Arte e Cultura — Viale Pietro de Coubertin 30, Roma', tag:'📍', lat:41.9286, lng:12.475, rs:true},
+  {n:'MAXXI', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Via Guido Reni 4A, Roma', tag:'📍', lat:41.9283, lng:12.4669, rs:true},
+  {n:'Terrazza del Pincio', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Piazzale Napoleone I, Roma', tag:'📍', lat:41.9114, lng:12.4783, rs:true},
+  {n:'Santa Maria del Popolo', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza del Popolo, Roma', tag:'📍', lat:41.9112, lng:12.4763, rs:true},
+  {n:'Fontana dell\'Acqua Paola', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Via Garibaldi, Roma', tag:'📍', lat:41.8889, lng:12.4629, rs:true},
+  {n:'Parco della Caffarella', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Parco della Caffarella, Roma', tag:'📍', lat:41.8626966, lng:12.5205347, rs:true},
+  {n:'Casa del Cinema', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Largo Marcello Mastroianni 1, Roma', tag:'📍', lat:41.9135, lng:12.4889, rs:true},
+  {n:'Sant\'Agostino', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza Sant\'Agostino, Roma', tag:'📍', lat:41.9016, lng:12.4738, rs:true},
+  {n:'Gianicolo', z:'Altre zone', cats:['explore'], note:'Strade e Quartieri — Piazzale Giuseppe Garibaldi, Roma', tag:'📍', lat:41.8919, lng:12.4615, rs:true},
+  {n:'Chiostro del Bramante', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Arco della Pace 5, Roma', tag:'📍', lat:41.9008, lng:12.4716, rs:true},
+  {n:'Villa Doria Pamphilj', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Via di San Pancrazio, Roma', tag:'📍', lat:41.8842, lng:12.4503, rs:true},
+  {n:'Centrale Montemartini', z:'Ostiense', cats:['explore'], note:'Arte e Cultura — Via Ostiense 106, Roma', tag:'📍', lat:41.8636, lng:12.4763, rs:true},
+  {n:'Castel Sant\'Angelo', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Lungotevere Castello 50, Roma', tag:'📍', lat:41.9031, lng:12.4663, rs:true},
+  {n:'Orto Botanico', z:'Altre zone', cats:['explore'], note:'Verde Urbano — Largo Cristina di Svezia 23, Roma', tag:'📍', lat:41.8919474, lng:12.4651856, rs:true},
+  {n:'Villa Medici', z:'Monti', cats:['explore'], note:'Arte e Cultura — Viale della Trinità dei Monti 1, Roma', tag:'📍', lat:41.9085, lng:12.483, rs:true},
+  {n:'GNAM', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Viale delle Belle Arti 131, Roma', tag:'📍', lat:41.9162, lng:12.483, rs:true},
+  {n:'Monte dei Cocci', z:'Altre zone', cats:['explore'], note:'Roma Iconica — Via Nicola Zabaglia / Via Galvani, Roma', tag:'📍', lat:41.8761, lng:12.4756, rs:true},
+  {n:'Musei Capitolini', z:'Altre zone', cats:['explore'], note:'Arte e Cultura — Piazza del Campidoglio 1, Roma', tag:'📍', lat:41.8932, lng:12.4828, rs:true},
+  {n:'100C Vino e Pesce', z:'Altre zone', cats:['pranzo'], note:'Pesce — Viale delle Orchidee 12, Roma', tag:'🍽️', lat:41.8893003, lng:12.5693, rs:true},
+  {n:'Magazzino Scipioni', z:'Altre zone', cats:['ape'], note:'Bere bene — Via degli Scipioni 30, Roma', tag:'🍹', lat:41.9092979, lng:12.4611131, rs:true},
+  {n:'Hettaro', z:'Monti', cats:['shop_food'], note:'Food shop — Via dei Monti di Creta 12, Roma', tag:'🧺', lat:41.9016205, lng:12.4292991, rs:true},
+  {n:'Bar Gianicolo', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Piazzale Aurelio 5, Roma', tag:'🍹', lat:41.8882977, lng:12.4611948, rs:true},
+  {n:'La Casa del Caffè Tazza d\'Oro', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Via degli Orfani 84, Roma', tag:'🍹', lat:41.8995925, lng:12.4774865, rs:true},
+  {n:'Vico Pizza&Wine', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — Piazza Rondanini 47, Roma', tag:'🍽️', lat:41.8998666, lng:12.4759432, rs:true},
+  {n:'Forno Marchetti', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via Folco Portinari 42, Roma', tag:'🧺', lat:41.8686993, lng:12.4492541, rs:true},
+  {n:'Emporio delle spezie', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via Galvani 11, Roma', tag:'🧺', lat:41.8774955, lng:12.4761867, rs:true},
+  {n:'La Carbonara', z:'Centro Storico', cats:['pranzo'], note:'Mangiare romano — Via di Campo de\' Fiori 23, Roma', tag:'🍽️', lat:41.8958937, lng:12.4716183, rs:true},
+  {n:'Parenti', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via Ottaviano 33, Roma', tag:'🥐', lat:41.9079768, lng:12.4579074, rs:true},
+  {n:'Biscottificio Artigiano Innocenti', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via della Luce 21, Roma', tag:'🧺', lat:41.8885642, lng:12.4753182, rs:true},
+  {n:'Enoteca Bernabei Testaccio', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via Luca della Robbia 12, Roma', tag:'🧺', lat:41.8785565, lng:12.4780767, rs:true},
+  {n:'Panificio Passi', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via Mastro Giorgio 87, Roma', tag:'🧺', lat:41.8802399, lng:12.4762485, rs:true},
+  {n:'Forno Ritorno', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via Amerigo Vespucci 20, Roma', tag:'🥐', lat:41.880034, lng:12.4731492, rs:true},
+  {n:'Trattoria Da Enzo', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via dei Vascellari, 29, Roma', tag:'🍽️', lat:41.8880864, lng:12.477807, rs:true},
+  {n:'Piatto Romano', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Giovanni Battista Bodoni 62, Roma', tag:'🍽️', lat:41.8793504, lng:12.4758599, rs:true},
+  {n:'Gastronomia Lara', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via di Boccea 55/55a, Roma', tag:'🧺', lat:41.9176774, lng:12.3783586, rs:true},
+  {n:'La Differenza Roma', z:'Altre zone', cats:['shop_food'], note:'Food shop — Largo Magnagrecia 4-5, Roma', tag:'🧺', lat:41.8835589, lng:12.5089432, rs:true},
+  {n:'Al Biondo Tevere', z:'Ostiense', cats:['pranzo'], note:'Mangiare romano — Via Ostiense 178, Roma', tag:'🍽️', lat:41.8634876, lng:12.4783703, rs:true},
+  {n:'DOL - Taste\'Accio', z:'Testaccio & Garbatella', cats:['shop_food'], note:'Food shop — Via di Monte Testaccio 91/93, Roma', tag:'🧺', lat:41.8764504, lng:12.476081, rs:true},
+  {n:'La Salsamenteria di Roberto Mangione', z:'Altre zone', cats:['shop_food'], note:'Food shop — Roma', tag:'🧺', lat:41.9225204, lng:12.4758142, rs:true},
+  {n:'Trattoria Perilli', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Marmorata 39, Roma', tag:'🍽️', lat:41.878841, lng:12.478822, rs:true},
+  {n:'Trattoria Pennestri', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Giovanni da Empoli 5, Roma', tag:'🍽️', lat:41.8733548, lng:12.4798767, rs:true},
+  {n:'Osteria la Gensola', z:'Altre zone', cats:['pranzo'], note:'Pesce — Piazza della Gensola 15, Roma', tag:'🍽️', lat:41.8895149, lng:12.4765446, rs:true},
+  {n:'Rocco Ristorante', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Giovanni Lanza, 93, Roma', tag:'🍽️', lat:41.8943343, lng:12.49696, rs:true},
+  {n:'Armando al Pantheon', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Salita de\' Crescenzi 31, Roma', tag:'🍽️', lat:41.8990605, lng:12.476199, rs:true},
+  {n:'Eggs Roma', z:'Altre zone', cats:['pranzo'], note:'Cucina creativa — Via Natale del Grande, 52, Roma', tag:'🍽️', lat:41.8874507, lng:12.4711673, rs:true},
+  {n:'Panificio Marè Prati', z:'Altre zone', cats:['shop_food'], note:'Food shop — Viale Angelico 88, Roma', tag:'🧺', lat:41.9117549, lng:12.4581293, rs:true},
+  {n:'Trattoria Da Cesare al Casaletto', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via del Casaletto 45, Roma', tag:'🍽️', lat:41.8768028, lng:12.4408785, rs:true},
+  {n:'Dar Moschino', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Piazza Benedetto Brin 5, Roma', tag:'🍽️', lat:41.8622574, lng:12.4824912, rs:true},
+  {n:'Pommidoro', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Piazza dei Sanniti 44, Roma', tag:'🍽️', lat:41.8984824, lng:12.5166348, rs:true},
+  {n:'Sora Margherita', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Piazza delle Cinque Scole 30, Roma', tag:'🍽️', lat:41.8929965, lng:12.4765665, rs:true},
+  {n:'Castroni', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via Cola di Rienzo 196/198, Roma', tag:'🧺', lat:41.9073464, lng:12.4632011, rs:true},
+  {n:'Ristorante Pecorino', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Galvani, 64, Roma', tag:'🍽️', lat:41.8788904, lng:12.4764144, rs:true},
+  {n:'Le Levain', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via Luigi Santini 22, Roma', tag:'🥐', lat:41.8871605, lng:12.4686423, rs:true},
+  {n:'Salumeria Volpetti', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via Marmorata 47, Roma', tag:'🧺', lat:41.8790835, lng:12.4786412, rs:true},
+  {n:'Roscioli Salumeria con Cucina', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via dei Giubbonari 21, Roma', tag:'🧺', lat:41.89422, lng:12.4742602, rs:true},
+  {n:'Nero Vaniglia', z:'Ostiense', cats:['pasticceria'], note:'Pasticcerie — Circonvallazione Ostiense 201, Roma', tag:'🥐', lat:41.8674507, lng:12.4899351, rs:true},
+  {n:'Regoli', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via dello Statuto 60, Roma', tag:'🥐', lat:41.8948568, lng:12.5009038, rs:true},
+  {n:'La Tradizione', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via Cipro 8/E, Roma', tag:'🧺', lat:41.907315, lng:12.4469301, rs:true},
+  {n:'Trattoria da Augusto', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Piazza de\' Renzi, 15, Roma', tag:'🍽️', lat:41.890282, lng:12.468229, rs:true},
+  {n:'Barberini', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via Marmorata 41, Roma', tag:'🥐', lat:41.8789156, lng:12.4787522, rs:true},
+  {n:'Palombi (Oasi della birra)', z:'Testaccio & Garbatella', cats:['shop_food'], note:'Food shop — Piazza Testaccio 38, Roma', tag:'🧺', lat:41.8797643, lng:12.4774629, rs:true},
+  {n:'Osteria di Maccarese', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via dei Pastori  26, Maccarese RM', tag:'🍽️', lat:41.8329615, lng:12.242998, rs:true},
+  {n:'Ercoli 1928 Prati', z:'Altre zone', cats:['shop_food'], note:'Food shop — Roma', tag:'🧺', lat:41.9184883, lng:12.4631783, rs:true},
+  {n:'Ristoro degli Angeli', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Luigi Orlando 2, Roma', tag:'🍽️', lat:41.8626743, lng:12.4848143, rs:true},
+  {n:'Lo Scopettaro', z:'Testaccio & Garbatella', cats:['pranzo'], note:'Mangiare romano — Lungotevere Testaccio 7, Roma', tag:'🍽️', lat:41.8823262, lng:12.4751492, rs:true},
+  {n:'Da Gino al Parlamento', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Vicolo Rosini 4, Roma', tag:'🍽️', lat:41.902242, lng:12.477446, rs:true},
+  {n:'Da Bucatino', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via Luca della Robbia 84, Roma', tag:'🍽️', lat:41.8804399, lng:12.4768098, rs:true},
+  {n:'Forno Conti & Co.', z:'Altre zone', cats:['pasticceria'], note:'Pasticcerie — Via Giusti 18, Roma', tag:'🥐', lat:41.8924089, lng:12.5028616, rs:true},
+  {n:'Forme - Dispensa a Ripa', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via di S. Francesco a Ripa 71, Roma', tag:'🧺', lat:41.8873372, lng:12.4717104, rs:true},
+  {n:'Comptoir de France', z:'Altre zone', cats:['shop_food'], note:'Food shop — Via Giovanni Vitelleschi 20, Roma', tag:'🧺', lat:41.904536, lng:12.4624671, rs:true},
+  {n:'La Matriciana dal 1870', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Via del Viminale 40, Roma', tag:'🍽️', lat:41.900263, lng:12.4959937, rs:true},
+  {n:'Proloco Centocelle', z:'Altre zone', cats:['pranzo'], note:'Mangiare romano — Roma', tag:'🍽️', lat:41.8823049, lng:12.5621942, rs:true},
+  {n:'La Scialuppa da Salvatore', z:'Altre zone', cats:['pranzo'], note:'Pesce — Via G. B. Bodoni 9, Roma', tag:'🍽️', lat:41.8638607, lng:12.185312, rs:true},
+  {n:'Bar Marani', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Via dei Volsci 57, Roma', tag:'🍹', lat:41.897029, lng:12.5132836, rs:true},
+  {n:'Ciampini Roma', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Piazza San Lorenzo in Lucina 29, Roma', tag:'🍹', lat:41.90374, lng:12.47803, rs:true},
+  {n:'Antico Bar Pasticceria Mariani', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Antico Bar Pasticceria Mariani, Roma', tag:'🍹', lat:41.892961, lng:12.4718222, rs:true},
+  {n:'Bar Brunori Caffè e Vinile', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Bar Brunori Caffè e Vinile, Roma', tag:'🍹', lat:41.8756627, lng:12.4897472, rs:true},
+  {n:'Byblos Restaurant Roma', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via Eurialo 1e, Roma', tag:'🍽️', lat:41.8751564, lng:12.5243453, rs:true},
+  {n:'UMA Roma', z:'Altre zone', cats:['pranzo'], note:'Cucina creativa — Via Girolamo Benzoni 34, Roma', tag:'🍽️', lat:41.8704805, lng:12.4844844, rs:true},
+  {n:'Il Pagliaccio', z:'Altre zone', cats:['pranzo'], note:'Cucina creativa — Via dei Banchi Vecchi 129, Roma', tag:'🍽️', lat:41.897889, lng:12.4674252, rs:true},
+  {n:'Akropolis Taverna Greca', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via di San Francesco a Ripa 104, Roma', tag:'🍽️', lat:41.886055, lng:12.4724456, rs:true},
+  {n:'Il SanLorenzo', z:'Altre zone', cats:['pranzo'], note:'Pesce — Via dei Chiavari 4/5, Roma', tag:'🍽️', lat:41.8952656, lng:12.4742474, rs:true},
+  {n:'Kohaku', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via Marche 66, Roma', tag:'🍽️', lat:41.9086322, lng:12.490352, rs:true},
+  {n:'Caffè Perù', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Via di Monserrato 46,  Roma', tag:'🍹', lat:41.8954811, lng:12.4701357, rs:true},
+  {n:'Mi Ristorante Cucina Cinese Contemporanea', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via Giovanni Botero 31/33, Roma', tag:'🍽️', lat:41.8706649, lng:12.5263374, rs:true},
+  {n:'Tuk Tuk - Garbatella', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via Giovannipoli 125, Roma', tag:'🍽️', lat:41.8593857, lng:12.4814724, rs:true},
+  {n:'ie koji Japanese Izakaya - Osteria Giapponese', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via Marcantonio Bragadin 13, Roma', tag:'🍽️', lat:41.905842, lng:12.4467915, rs:true},
+  {n:'Nakai', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via di Santa Maria alle Fornaci 14, Roma', tag:'🍽️', lat:41.8980635, lng:12.4556526, rs:true},
+  {n:'Casa Sánchez', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via Catanzaro 6/B, Roma', tag:'🍽️', lat:41.9120698, lng:12.5173746, rs:true},
+  {n:'Oolong', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Piazza di San Paolo alla Regola 39/40, Roma', tag:'🍽️', lat:41.8931006, lng:12.4736895, rs:true},
+  {n:'Kiko Sushi Bar', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Piazzale del Verano 90, Roma', tag:'🍽️', lat:41.901464, lng:12.5192584, rs:true},
+  {n:'Green T.', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via del Piè di Marmo 28, Roma', tag:'🍽️', lat:41.8976077, lng:12.4792824, rs:true},
+  {n:'Dogma', z:'Altre zone', cats:['pranzo'], note:'Pesce — Piazza Zama 34, Roma', tag:'🍽️', lat:41.8760818, lng:12.5093199, rs:true},
+  {n:'Trattoria del Pesce', z:'Altre zone', cats:['pranzo'], note:'Pesce — Via Folco Portinari 27, Roma', tag:'🍽️', lat:41.86853, lng:12.4493795, rs:true},
+  {n:'Meglio Fresco', z:'Altre zone', cats:['pranzo'], note:'Pesce — Via di Boccea 350, Roma', tag:'🍽️', lat:41.9032977, lng:12.4142591, rs:true},
+  {n:'Pizzeria Ai Marmi', z:'Trastevere', cats:['pranzo'], note:'Pizzerie — Viale Trastevere, 53 Roma', tag:'🍽️', lat:41.8882634, lng:12.4737899, rs:true},
+  {n:'OASI', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via Marmorata 181, Roma', tag:'🍽️', lat:41.8822569, lng:12.4763837, rs:true},
+  {n:'La Torricella', z:'Altre zone', cats:['pranzo'], note:'Pesce — Via di Torricella, 2, Roma', tag:'🍽️', lat:41.8781248, lng:12.4714903, rs:true},
+  {n:'Da Benito e Gilberto', z:'Altre zone', cats:['pranzo'], note:'Pesce — Via dei Falegnami 14, Roma', tag:'🍽️', lat:41.9041365, lng:12.4593375, rs:true},
+  {n:'Sant\'Eustachio Caffè', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Piazza di S. Eustachio 82, Roma', tag:'🍹', lat:41.8982749, lng:12.4754254, rs:true},
+  {n:'Il Grottino a Testaccio', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — Via Marmorata 165, Roma', tag:'🍽️', lat:41.8820524, lng:12.4766064, rs:true},
+  {n:'180Grammi Pizzeria Romana', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — Via Genazzano 32, Roma', tag:'🍽️', lat:41.8911475, lng:12.5527905, rs:true},
+  {n:'Canova Tadolini', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Via del Babuino 150, Roma', tag:'🍹', lat:41.9083451, lng:12.4790899, rs:true},
+  {n:'La Punta Expendio de Agave', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via Santa Cecilia 8, 00153 Roma', tag:'🍽️', lat:41.8874796, lng:12.4772307, rs:true},
+  {n:'Per Me - Giulio Terrinoni', z:'Altre zone', cats:['pranzo'], note:'Pesce — Vicolo del Malpasso 9, Roma', tag:'🍽️', lat:41.8973258, lng:12.4675316, rs:true},
+  {n:'La Baia di Fregene', z:'Altre zone', cats:['pranzo'], note:'Pesce — Via Silvi Marina, 1, 00054 Fregene RM', tag:'🍽️', lat:41.8613457, lng:12.1876746, rs:true},
+  {n:'Pizzeria Da Baffetto', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — V. del Governo Vecchio 114, Roma', tag:'🍽️', lat:41.8983047, lng:12.4703507, rs:true},
+  {n:'Pizza & Bolle | La Romana - Gasometro', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — Lungotevere di Pietra Papa 201, Roma', tag:'🍽️', lat:41.8623526, lng:12.473784, rs:true},
+  {n:'L\'Elementare - Ponte Testaccio', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — Via degli Stradivari 25, Roma', tag:'🍽️', lat:41.8745353, lng:12.4683445, rs:true},
+  {n:'Sushisen', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via Giuseppe Giulietti, 21A, Roma', tag:'🍽️', lat:41.8750844, lng:12.4793601, rs:true},
+  {n:'EGO Ristorante - Roma', z:'Altre zone', cats:['pranzo'], note:'Cucina creativa — Via Etruria 35, Roma', tag:'🍽️', lat:41.8797144, lng:12.5098436, rs:true},
+  {n:'Sciascia Caffè 1919', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Sciascia Caffè 1919, Roma', tag:'🍹', lat:41.909859, lng:12.461994, rs:true},
+  {n:'MAZZO', z:'Altre zone', cats:['pranzo'], note:'Cucina creativa — Via dei Campani 71/73, Roma', tag:'🍽️', lat:41.8950405, lng:12.5154592, rs:true},
+  {n:'Bar San Calisto', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Piazza di S. Calisto 3, Roma', tag:'🍹', lat:41.8890547, lng:12.4707375, rs:true},
+  {n:'Sintesi Ristorante', z:'Altre zone', cats:['pranzo'], note:'Cucina creativa — Viale dei Castani 17, Ariccia', tag:'🍽️', lat:41.7234594, lng:12.6823662, rs:true},
+  {n:'La Montecarlo', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — Vicolo Savelli 13, Roma', tag:'🍽️', lat:41.8976167, lng:12.4707703, rs:true},
+  {n:'Remo a Testaccio', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — Piazza di S Maria Liberatrice 44, Roma', tag:'🍽️', lat:41.8809047, lng:12.4754643, rs:true},
+  {n:'Jaipur', z:'Altre zone', cats:['pranzo'], note:'Cucine dal mondo — Via di S. Francesco a Ripa 56, Roma', tag:'🍽️', lat:41.886256, lng:12.472487, rs:true},
+  {n:'Nuovo Mondo', z:'Altre zone', cats:['pranzo'], note:'Pizzerie — Via Amerigo Vespucci 9, Roma', tag:'🍽️', lat:41.88212, lng:12.4761722, rs:true},
+  {n:'Giolitti a Testaccio', z:'Altre zone', cats:['ape'], note:'Bar e caffè — Via Amerigo Vespucci 35, Roma', tag:'🍹', lat:41.8819421, lng:12.475968, rs:true},
+  {n:'Les Vignerons', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Goffredo Mameli 61/62, Roma', tag:'🍹', lat:41.8870727, lng:12.4679072, rs:true},
+  {n:'Mostò', z:'Altre zone', cats:['ape'], note:'Bere bene — Viale Pinturicchio 32, Roma', tag:'🍹', lat:41.9326245, lng:12.4664553, rs:true},
+  {n:'Enoteca il Piccolo dal 1980', z:'Altre zone', cats:['ape'], note:'Bere bene — Via del Governo Vecchio 74-75,  Roma', tag:'🍹', lat:41.89809, lng:12.4715626, rs:true},
+  {n:'Il Vinaietto', z:'Altre zone', cats:['ape'], note:'Bere bene — Via del Monte della Farina 38, Roma', tag:'🍹', lat:41.8945648, lng:12.4749405, rs:true},
+  {n:'La Mescita', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Luigi Fincati, 44, 00154 Roma RM', tag:'🍹', lat:41.8629853, lng:12.4848306, rs:true},
+  {n:'Concreto Cucina e Vino', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Marianna Dionigi 4, Roma', tag:'🍹', lat:41.9058395, lng:12.4724184, rs:true},
+  {n:'Ciao', z:'Altre zone', cats:['ape','musica'], note:'Bere bene — Vicolo di S. Celso 8, Roma', tag:'🍹', lat:41.900323, lng:12.4674447, rs:true},
+  {n:'il Covino', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Ostia 21, Roma', tag:'🍹', lat:41.9092841, lng:12.4542456, rs:true},
+  {n:'Ciaparat Enoteca', z:'Altre zone', cats:['ape'], note:'Bere bene — Piazza S. Donà di Piave 14, Roma', tag:'🍹', lat:41.8796151, lng:12.5189786, rs:true},
+  {n:'Solovino', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Rialto 25, Roma', tag:'🍹', lat:41.9078583, lng:12.4461113, rs:true},
+  {n:'Vinificio', z:'Altre zone', cats:['ape'], note:'Bere bene — Piazza dell\'Emporio 1, Roma', tag:'🍹', lat:41.8824055, lng:12.4762217, rs:true},
+  {n:'Tante care cose', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Carlo Errera 46, Roma', tag:'🍹', lat:41.8833833, lng:12.5381602, rs:true},
+  {n:'Ruvido', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Apulia 11, Roma', tag:'🍹', lat:41.8816656, lng:12.5045214, rs:true},
+  {n:'Elephant', z:'Altre zone', cats:['ape'], note:'Bere bene — Via degli Irpini 22, Roma', tag:'🍹', lat:41.9009838, lng:12.5140075, rs:true},
+  {n:'Enoteca Cavour 313', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Cavour 313, Roma', tag:'🍹', lat:41.8937195, lng:12.489126, rs:true},
+  {n:'33 Giri Listening Bar', z:'Altre zone', cats:['ape','musica'], note:'Bere bene — Via del Falco 37/38, Roma', tag:'🍹', lat:41.9050235, lng:12.4595018, rs:true},
+  {n:'L\'Antidoto', z:'Altre zone', cats:['ape'], note:'Bere bene — Vicolo del Bologna 19, Roma', tag:'🍹', lat:41.8909999, lng:12.4688555, rs:true},
+  {n:'Avanvera', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Luigi Tosti 29, Roma', tag:'🍹', lat:41.8729256, lng:12.5189113, rs:true},
+  {n:'Mostro', z:'Altre zone', cats:['ape'], note:'Bere bene — Piazza di Porta S. Paolo, Roma', tag:'🍹', lat:41.8770817, lng:12.4810132, rs:true},
+  {n:'Fischio', z:'Altre zone', cats:['ape'], note:'Bere bene — Piazzale degli Eroi, 00136 Roma', tag:'🍹', lat:41.9089523, lng:12.448617, rs:true},
+  {n:'Il Goccetto', z:'Altre zone', cats:['ape'], note:'Bere bene — Via dei Banchi Vecchi 14, Roma', tag:'🍹', lat:41.8977958, lng:12.4673444, rs:true},
+  {n:'Smile Bar', z:'Altre zone', cats:['ape','musica'], note:'Bere bene — Piazza Bartolomeo Romano 4, Roma', tag:'🍹', lat:41.8628205, lng:12.485226, rs:true},
+  {n:'Zic!', z:'Altre zone', cats:['ape'], note:'Bere bene — Via Giacomo Biga 2, Roma', tag:'🍹', lat:41.861657, lng:12.4864314, rs:true},
+  {n:'Bar Sogno', z:'Altre zone', cats:['ape','musica'], note:'Bere bene — Piazza Galeria 14, Roma', tag:'🍹', lat:41.8745984, lng:12.5062968, rs:true},
+  {n:'Lento Vineria con Cucina', z:'Altre zone', cats:['ape'], note:'Bere bene — Piazza di Santa Maria Ausiliatrice 17-18, Roma', tag:'🍹', lat:41.8733088, lng:12.5309427, rs:true},
+];
+
+places = places.concat(rsPlaces.map(p=>({...p, source:'rs'})));
+
+function slug(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');}
+places = places.map((p,i)=>({...p, id: slug(p.n)+'-'+i}));
+
+let basePlaces = places; // built-in (mio + rs), fixed ids
+const CAT_TAGS = {ape:'🍹', pranzo:'🍽️', forno:'🍕', gelato:'🍦', pasticceria:'🥐', shop_food:'🧺', shop:'🛍️', explore:'📍', musica:'🎵'};
+
+let state = { cat:'all', zone:null, source:'all', q:'', onlyFavorites:false, favorites:{}, view:'list' };
+let leafletMap = null;
+let markersLayer = null;
+
+const LS_PREFIX = 'posti-roma:';
+function lsGet(key, fallback){
+  try{
+    const raw = localStorage.getItem(LS_PREFIX + key);
+    return raw != null ? JSON.parse(raw) : fallback;
+  }catch(e){ return fallback; }
+}
+function lsSet(key, value){
+  try{ localStorage.setItem(LS_PREFIX + key, JSON.stringify(value)); }
+  catch(e){ console.error('localStorage error', e); }
+}
+
+function loadAllData(){
+  state.favorites = lsGet('favorites-map', {});
+  render();
+}
+
+function saveFavorites(){ lsSet('favorites-map', state.favorites); }
+
+function toggleFavorite(id){
+  if(state.favorites[id]) delete state.favorites[id];
+  else state.favorites[id] = true;
+  render();
+  saveFavorites();
+}
+
+const tabsEl = document.getElementById('tabs');
+CATS.forEach(cat=>{
+  const b=document.createElement('button');
+  b.className='tab'+(cat.id==='all'?' active':'');
+  b.textContent=cat.label;
+  b.onclick=()=>{state.cat=cat.id; syncTabs(); render();};
+  b.dataset.id=cat.id;
+  tabsEl.appendChild(b);
+});
+function syncTabs(){
+  [...tabsEl.children].forEach(b=>b.classList.toggle('active', b.dataset.id===state.cat));
+}
+
+const sourcesEl = document.getElementById('sources');
+SOURCES.forEach(s=>{
+  const b=document.createElement('button');
+  b.className='tab'+(s.id==='all'?' active':'');
+  b.textContent=s.label;
+  b.onclick=()=>{state.source=s.id; syncSources(); render();};
+  b.dataset.id=s.id;
+  sourcesEl.appendChild(b);
+});
+function syncSources(){
+  [...sourcesEl.children].forEach(b=>b.classList.toggle('active', b.dataset.id===state.source));
+}
+
+const zonesEl = document.getElementById('zones');
+ZONES.forEach(z=>{
+  const b=document.createElement('button');
+  b.className='targa';
+  b.textContent=z;
+  b.onclick=()=>{
+    state.zone = (state.zone===z) ? null : z;
+    syncZones();
+    render();
+  };
+  b.dataset.zone=z;
+  zonesEl.appendChild(b);
+});
+function syncZones(){
+  [...zonesEl.children].forEach(b=>b.classList.toggle('active', b.dataset.zone===state.zone));
+}
+
+document.getElementById('search').addEventListener('input', e=>{
+  state.q = e.target.value.trim().toLowerCase();
+  render();
+});
+
+const onlyFavBtn = document.getElementById('onlyFavBtn');
+onlyFavBtn.onclick=()=>{
+  state.onlyFavorites = !state.onlyFavorites;
+  onlyFavBtn.classList.toggle('active', state.onlyFavorites);
+  render();
+};
+
+const btnList = document.getElementById('btnList');
+const btnMap = document.getElementById('btnMap');
+const listWrap = document.getElementById('listWrap');
+const mapWrap = document.getElementById('mapWrap');
+
+btnList.onclick=()=>{
+  state.view='list';
+  btnList.classList.add('active'); btnMap.classList.remove('active');
+  listWrap.classList.remove('hidden'); mapWrap.classList.remove('active');
+};
+btnMap.onclick=()=>{
+  state.view='map';
+  btnMap.classList.add('active'); btnList.classList.remove('active');
+  listWrap.classList.add('hidden'); mapWrap.classList.add('active');
+  setTimeout(()=>{
+    if(!leafletMap) initMap();
+    leafletMap.invalidateSize();
+    render();
+  }, 30);
+};
+
+function initMap(){
+  leafletMap = L.map('map', {zoomControl:true}).setView([41.9028, 12.4964], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(leafletMap);
+  markersLayer = L.layerGroup().addTo(leafletMap);
+}
+
+function getFiltered(){
+  return basePlaces.filter(p=>{
+    if(state.cat!=='all' && !p.cats.includes(state.cat)) return false;
+    if(state.zone && p.z!==state.zone) return false;
+    if(state.source!=='all' && p.source!==state.source) return false;
+    if(state.onlyFavorites && !state.favorites[p.id]) return false;
+    if(state.q){
+      const hay = (p.n+' '+p.z+' '+p.note).toLowerCase();
+      if(!hay.includes(state.q)) return false;
+    }
+    return true;
+  });
+}
+
+const listEl = document.getElementById('list');
+const countEl = document.getElementById('count');
+
+function render(){
+  const items = getFiltered();
+  countEl.textContent = items.length + (items.length===1 ? ' posto trovato' : ' posti trovati');
+
+  listEl.innerHTML='';
+  if(items.length===0){
+    const e=document.createElement('div');
+    e.className='empty';
+    e.textContent='Nessun posto trovato — prova a cambiare filtro.';
+    listEl.appendChild(e);
+  } else {
+    items.forEach(p=>{
+      const fav = !!state.favorites[p.id];
+      const hasGeo = p.lat && p.lng;
+      const card=document.createElement('div');
+      card.className='card'+(fav?' favorite':'');
+      card.innerHTML = `
+        <div class="card-main">
+          <div class="card-name">${p.n}</div>
+          <div class="card-meta"><span class="pin-dot ${hasGeo?'':'nogeo'}"></span>${p.z}</div>
+          ${p.note ? `<div class="card-note">${p.note}</div>` : ''}
+          <div class="card-tags">${p.tag}</div>
+        </div>
+        <button class="fav-btn" title="Aggiungi ai preferiti" aria-label="Aggiungi ai preferiti">${fav?'★':'☆'}</button>
+      `;
+      card.querySelector('.fav-btn').onclick = ()=>toggleFavorite(p.id);
+      listEl.appendChild(card);
+    });
+  }
+
+  if(leafletMap && markersLayer){
+    markersLayer.clearLayers();
+    items.forEach(p=>{
+      if(!p.lat || !p.lng) return;
+      const fav = !!state.favorites[p.id];
+      const color = fav ? '#B0862A' : '#A13F27';
+      const marker = L.circleMarker([p.lat, p.lng], {
+        radius: 7,
+        color: '#241C15',
+        weight: 1.5,
+        fillColor: color,
+        fillOpacity: 0.9
+      });
+      const popupDiv = document.createElement('div');
+      popupDiv.innerHTML = `
+        <div class="popup-name">${p.n}</div>
+        <div class="popup-meta">${p.z}</div>
+        ${p.note ? `<div class="popup-note">${p.note}</div>` : ''}
+        <button class="popup-fav ${fav?'on':''}">${fav?'★ Nei preferiti':'☆ Aggiungi ai preferiti'}</button>
+      `;
+      popupDiv.querySelector('.popup-fav').onclick = ()=>{ toggleFavorite(p.id); };
+      marker.bindPopup(popupDiv);
+      marker.addTo(markersLayer);
+    });
+  }
+}
+
+// ---------- PUBLIC "SUGGEST A PLACE" FORM ----------
+// Replace with your own address before publishing the site.
+const SUGGESTION_EMAIL = 'nicholas.caggiula.w@gmail.com';
+
+const suggestOverlay = document.getElementById('suggestOverlay');
+const sCatBox = document.getElementById('sCatBox');
+const sZone = document.getElementById('sZone');
+const sName = document.getElementById('sName');
+const sNote = document.getElementById('sNote');
+const sFrom = document.getElementById('sFrom');
+const sSend = document.getElementById('sSend');
+const sCancel = document.getElementById('sCancel');
+
+CATS.filter(c=>c.id!=='all').forEach(c=>{
+  const label = document.createElement('label');
+  label.className = 'cat-chk';
+  label.innerHTML = `<input type="checkbox" value="${c.id}"> ${c.label}`;
+  const input = label.querySelector('input');
+  input.addEventListener('change', ()=> label.classList.toggle('checked', input.checked));
+  sCatBox.appendChild(label);
+});
+ZONES.forEach(z=>{
+  const o=document.createElement('option'); o.value=z; o.textContent=z;
+  sZone.appendChild(o);
+});
+
+function openSuggest(){
+  sName.value = '';
+  sNote.value = '';
+  sFrom.value = '';
+  sZone.value = 'Altre zone';
+  [...sCatBox.querySelectorAll('input')].forEach(i=>{ i.checked=false; i.closest('.cat-chk').classList.remove('checked'); });
+  suggestOverlay.classList.add('active');
+  setTimeout(()=>sName.focus(), 50);
+}
+function closeSuggest(){ suggestOverlay.classList.remove('active'); }
+suggestOverlay.addEventListener('click', e=>{ if(e.target===suggestOverlay) closeSuggest(); });
+sCancel.onclick = closeSuggest;
+document.getElementById('btnSuggest').onclick = openSuggest;
+
+sSend.onclick = ()=>{
+  const name = sName.value.trim();
+  if(!name){ sName.focus(); return; }
+  const cats = [...sCatBox.querySelectorAll('input')].filter(i=>i.checked).map(i=>{
+    const c = CATS.find(c=>c.id===i.value); return c ? c.label : i.value;
+  });
+  const zone = sZone.value;
+  const note = sNote.value.trim();
+  const from = sFrom.value.trim();
+
+  const bodyLines = [
+    'Nome: ' + name,
+    'Categorie: ' + (cats.length ? cats.join(', ') : '(nessuna indicata)'),
+    'Zona: ' + zone,
+    'Nota: ' + (note || '(nessuna)'),
+    'Proposto da: ' + (from || '(anonimo)')
+  ];
+  const subject = encodeURIComponent('Proposta posto Roma: ' + name);
+  const body = encodeURIComponent(bodyLines.join('\n'));
+  window.location.href = `mailto:${SUGGESTION_EMAIL}?subject=${subject}&body=${body}`;
+  closeSuggest();
+};
+
+loadAllData();
+</script>
+</body>
+</html>
